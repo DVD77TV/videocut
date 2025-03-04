@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Trimmer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="container">
+        <input type="file" id="videoInput" accept="video/*" style="margin-bottom: 10px;">
+        <video id="videoPlayer" controls></video>
+        <div id="timeline">
+            <div id="startTriangle" class="triangle"></div>
+            <div id="endTriangle" class="triangle"></div>
+        </div>
+        <div id="timeDisplay">
+            Start: <span id="startTime">00:00:00</span> - End: <span id="endTime">00:00:00</span>
+        </div>
+        <button id="saveButton">Salva e Ottimizza</button>
+        <div id="saveOptions">
+            <div class="option" data-quality="1080p">1080p</div>
+            <div class="option" data-quality="720p">720p</div>
+            <div class="option" data-quality="original">Originale</div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
