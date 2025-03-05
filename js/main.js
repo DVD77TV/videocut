@@ -16,10 +16,20 @@ let ffmpeg = null;
 
 // Inizializza FFmpeg
 async function initFFmpeg() {
-    const { createFFmpeg, fetchFile } = FFmpeg;
+    const { createFFmpeg, fetchFile } = FFmpeg; // Assicurati che FFmpeg sia definito
+    if (!createFFmpeg) {
+        console.error('FFmpeg non è caricato correttamente. Verifica il CDN.');
+        alert('Errore: FFmpeg non è disponibile. Usa un browser moderno o un server compatibile.');
+        return;
+    }
     ffmpeg = createFFmpeg({ log: true });
-    await ffmpeg.load();
-    console.log('FFmpeg initialized');
+    try {
+        await ffmpeg.load();
+        console.log('FFmpeg initialized');
+    } catch (error) {
+        console.error('Errore durante il caricamento di FFmpeg:', error);
+        alert('Errore nel caricamento di FFmpeg. Controlla la console.');
+    }
 }
 initFFmpeg();
 
@@ -104,13 +114,18 @@ saveButton.addEventListener('click', () => {
 saveOptions.querySelectorAll('.option').forEach(option => {
     option.addEventListener('click', async () => {
         const quality = option.getAttribute('data-quality');
+        if (!ffmpeg || !ffmpeg.isLoaded()) {
+            alert('FFmpeg non è ancora inizializzato. Riprova tra qualche secondo.');
+            return;
+        }
         await saveVideo(quality);
     });
 });
 
 async function saveVideo(quality) {
-    if (!ffmpeg) {
-        alert('FFmpeg non è ancora inizializzato. Riprova.');
+    if (!ffmpeg || !ffmpeg.isLoaded()) {
+        console.error('FFmpeg non è inizializzato');
+        alert('Errore: FFmpeg non è pronto. Riprova.');
         return;
     }
 
@@ -120,39 +135,44 @@ async function saveVideo(quality) {
     const start = Math.floor(startTime);
     const duration = Math.floor(endTime - startTime);
 
-    // Scrivi il file di input nel filesystem di FFmpeg
-    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+    try {
+        // Scrivi il file di input nel filesystem di FFmpeg
+        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
 
-    // Comandi FFmpeg per il ritaglio e l'ottimizzazione
-    let crf = 23; // Controllo qualità (valore più basso = meglio, ma più pesante)
-    let resolution = '';
-    if (quality === '1080p') resolution = '-vf scale=1920:1080';
-    else if (quality === '720p') resolution = '-vf scale=1280:720';
-    else resolution = ''; // Originale
+        // Comandi FFmpeg per il ritaglio e l'ottimizzazione
+        let crf = 23; // Controllo qualità
+        let resolution = '';
+        if (quality === '1080p') resolution = '-vf scale=1920:1080';
+        else if (quality === '720p') resolution = '-vf scale=1280:720';
+        else resolution = ''; // Originale
 
-    await ffmpeg.run(
-        '-i', 'input.mp4',
-        '-ss', start.toString(),
-        '-t', duration.toString(),
-        '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', crf.toString(),
-        resolution,
-        'output.mp4'
-    );
+        await ffmpeg.run(
+            '-i', 'input.mp4',
+            '-ss', start.toString(),
+            '-t', duration.toString(),
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-crf', crf.toString(),
+            resolution,
+            'output.mp4'
+        );
 
-    // Leggi il file output
-    const data = ffmpeg.FS('readFile', 'output.mp4');
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
+        // Leggi il file output
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+        const blob = new Blob([data.buffer], { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
 
-    // Pulizia
-    ffmpeg.FS('unlink', 'input.mp4');
-    ffmpeg.FS('unlink', 'output.mp4');
-    saveOptions.style.display = 'none';
+        // Pulizia
+        ffmpeg.FS('unlink', 'input.mp4');
+        ffmpeg.FS('unlink', 'output.mp4');
+        saveOptions.style.display = 'none';
+    } catch (error) {
+        console.error('Errore durante il salvataggio:', error);
+        alert('Errore nel salvataggio del video. Controlla la console.');
+    }
 }
